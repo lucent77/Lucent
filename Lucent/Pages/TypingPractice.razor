@@ -1,0 +1,278 @@
+@page "/typing-practice"
+@using Lucent.Data
+@inject TypingPracticeService TypingService
+
+<h1>한글 타자 연습</h1>
+
+<div class="typing-practice-container">
+    @if (!isStarted)
+    {
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">타자 연습에 오신 것을 환영합니다!</h5>
+                <p class="card-text">시작 버튼을 눌러 타자 연습을 시작하세요.</p>
+                <button class="btn btn-primary btn-lg" @onclick="StartPractice">시작</button>
+            </div>
+        </div>
+    }
+    else if (!isFinished)
+    {
+        <div class="practice-area">
+            <div class="target-text-container">
+                <h4>다음 문장을 입력하세요:</h4>
+                <div class="target-text">
+                    @for (int i = 0; i < targetText.Length; i++)
+                    {
+                        var index = i;
+                        var charClass = GetCharClass(index);
+                        <span class="@charClass">@targetText[i]</span>
+                    }
+                </div>
+            </div>
+
+            <div class="input-area mt-4">
+                <textarea class="form-control"
+                          rows="3"
+                          @bind="userInput"
+                          @bind:event="oninput"
+                          @onkeyup="OnKeyUp"
+                          placeholder="여기에 입력하세요..."
+                          disabled="@isFinished"></textarea>
+            </div>
+
+            <div class="progress-info mt-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>진행률:</strong> @currentProgress%
+                    </div>
+                    <div class="col-md-4">
+                        <strong>경과 시간:</strong> @elapsedTime.ToString(@"mm\:ss")
+                    </div>
+                    <div class="col-md-4">
+                        <strong>현재 정확도:</strong> @currentAccuracy.ToString("F1")%
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-secondary" @onclick="ResetPractice">다시 시작</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="result-area">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">연습 완료!</h4>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <h5>정확도</h5>
+                            <p class="stat-value">@result.Accuracy.ToString("F2")%</p>
+                        </div>
+                        <div class="stat-item">
+                            <h5>타자 속도</h5>
+                            <p class="stat-value">@result.CharsPerMinute.ToString("F0") 타/분</p>
+                        </div>
+                        <div class="stat-item">
+                            <h5>소요 시간</h5>
+                            <p class="stat-value">@result.ElapsedTime.ToString(@"mm\:ss")</p>
+                        </div>
+                        <div class="stat-item">
+                            <h5>정확한 글자</h5>
+                            <p class="stat-value">@result.CorrectCharacters / @result.TotalCharacters</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button class="btn btn-primary" @onclick="StartPractice">다시 연습하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .typing-practice-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .target-text-container {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .target-text {
+        font-size: 24px;
+        line-height: 1.8;
+        font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+        letter-spacing: 1px;
+    }
+
+    .target-text span {
+        padding: 2px;
+    }
+
+    .char-correct {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .char-incorrect {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .char-pending {
+        color: #6c757d;
+    }
+
+    .input-area textarea {
+        font-size: 20px;
+        font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+        line-height: 1.6;
+    }
+
+    .progress-info {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+    }
+
+    .result-area {
+        text-align: center;
+    }
+
+    .result-stats {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .stat-item {
+        margin: 15px;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        min-width: 150px;
+    }
+
+    .stat-item h5 {
+        color: #6c757d;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #007bff;
+        margin: 0;
+    }
+</style>
+
+@code {
+    private bool isStarted = false;
+    private bool isFinished = false;
+    private string targetText = "";
+    private string userInput = "";
+    private TypingResult result;
+    private System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+    private System.Threading.Timer timer;
+    private TimeSpan elapsedTime = TimeSpan.Zero;
+    private int currentProgress = 0;
+    private double currentAccuracy = 0;
+
+    private void StartPractice()
+    {
+        isStarted = true;
+        isFinished = false;
+        targetText = TypingService.GetRandomText();
+        userInput = "";
+        stopwatch.Restart();
+        elapsedTime = TimeSpan.Zero;
+        currentProgress = 0;
+        currentAccuracy = 0;
+
+        timer = new System.Threading.Timer(UpdateTimer, null, 0, 100);
+    }
+
+    private void ResetPractice()
+    {
+        StopTimer();
+        StartPractice();
+    }
+
+    private void UpdateTimer(object state)
+    {
+        elapsedTime = stopwatch.Elapsed;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnKeyUp(KeyboardEventArgs e)
+    {
+        CalculateProgress();
+
+        if (userInput.Length >= targetText.Length)
+        {
+            FinishPractice();
+        }
+    }
+
+    private void CalculateProgress()
+    {
+        if (targetText.Length > 0)
+        {
+            currentProgress = Math.Min(100, (userInput.Length * 100) / targetText.Length);
+
+            int correctChars = 0;
+            int minLength = Math.Min(targetText.Length, userInput.Length);
+
+            for (int i = 0; i < minLength; i++)
+            {
+                if (targetText[i] == userInput[i])
+                {
+                    correctChars++;
+                }
+            }
+
+            if (minLength > 0)
+            {
+                currentAccuracy = (double)correctChars / minLength * 100;
+            }
+        }
+    }
+
+    private void FinishPractice()
+    {
+        StopTimer();
+        isFinished = true;
+        result = TypingService.CalculateResult(targetText, userInput, elapsedTime);
+    }
+
+    private void StopTimer()
+    {
+        stopwatch.Stop();
+        timer?.Dispose();
+    }
+
+    private string GetCharClass(int index)
+    {
+        if (index >= userInput.Length)
+        {
+            return "char-pending";
+        }
+
+        return targetText[index] == userInput[index] ? "char-correct" : "char-incorrect";
+    }
+
+    public void Dispose()
+    {
+        StopTimer();
+    }
+}
