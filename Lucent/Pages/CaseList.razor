@@ -1,0 +1,273 @@
+@page "/cases"
+@using Lucent.Models
+@using Lucent.Models.DTOs
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<h1 class="mb-4">Case Management</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Search</label>
+                    <input type="text" class="form-control" @bind="searchTerm" placeholder="Case #, Patient, Lab..." />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-control" @bind="selectedStatus">
+                        <option value="">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="OnHold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Shipped">Shipped</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Work Type</label>
+                    <select class="form-control" @bind="selectedWorkType">
+                        <option value="">All</option>
+                        <option value="SOLIDEX">SOLIDEX</option>
+                        <option value="PRINT3D">3D PRINT</option>
+                        <option value="ZEST">ZEST</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" class="form-control" @bind="startDate" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" class="form-control" @bind="endDate" />
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary btn-block" @onclick="SearchCases">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <button class="btn btn-success" @onclick="CreateNewCase">
+        <i class="oi oi-plus"></i> New Case
+    </button>
+</div>
+
+@if (loading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+}
+else if (cases != null && cases.Any())
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Case Number</th>
+                            <th>Patient Name</th>
+                            <th>Lab Name</th>
+                            <th>Work Type</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Order Date</th>
+                            <th>Due Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var caseItem in cases)
+                        {
+                            <tr>
+                                <td>@caseItem.CaseNumber</td>
+                                <td>@caseItem.PatientName</td>
+                                <td>@caseItem.LabName</td>
+                                <td><span class="badge badge-@GetWorkTypeBadgeClass(caseItem.WorkType)">@caseItem.WorkType</span></td>
+                                <td><span class="badge badge-@GetStatusBadgeClass(caseItem.Status)">@caseItem.Status</span></td>
+                                <td>@caseItem.Location</td>
+                                <td>@caseItem.OrderDate.ToString("yyyy-MM-dd")</td>
+                                <td>@(caseItem.DueDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" @onclick="() => ViewCase(caseItem.CaseId)">View</button>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => EditCase(caseItem.CaseId)">Edit</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    Showing page @currentPage of @totalPages (@totalCount total cases)
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-secondary" @onclick="PreviousPage" disabled="@(currentPage <= 1)">Previous</button>
+                    <span class="mx-2">Page @currentPage / @totalPages</span>
+                    <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(currentPage >= totalPages)">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">No cases found.</div>
+}
+
+@code {
+    private List<CaseListDto> cases;
+    private bool loading = true;
+    private string searchTerm = "";
+    private string selectedStatus = "";
+    private string selectedWorkType = "";
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private int totalCount = 0;
+    private int totalPages = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCases();
+    }
+
+    private async Task LoadCases()
+    {
+        loading = true;
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"page={currentPage}",
+                $"pageSize={pageSize}"
+            };
+
+            if (!string.IsNullOrEmpty(searchTerm))
+                queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
+
+            if (!string.IsNullOrEmpty(selectedStatus))
+                queryParams.Add($"status={selectedStatus}");
+
+            if (!string.IsNullOrEmpty(selectedWorkType))
+                queryParams.Add($"workType={selectedWorkType}");
+
+            if (startDate.HasValue)
+                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+
+            if (endDate.HasValue)
+                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+
+            var url = $"/api/Cases?{string.Join("&", queryParams)}";
+            var response = await Http.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                cases = await response.Content.ReadFromJsonAsync<List<CaseListDto>>();
+
+                // Read pagination headers
+                if (response.Headers.TryGetValues("X-Total-Count", out var totalCountValues))
+                {
+                    totalCount = int.Parse(totalCountValues.First());
+                    totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading cases: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SearchCases()
+    {
+        currentPage = 1;
+        await LoadCases();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            await LoadCases();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            await LoadCases();
+        }
+    }
+
+    private string GetWorkTypeBadgeClass(WorkType workType)
+    {
+        return workType switch
+        {
+            WorkType.SOLIDEX => "primary",
+            WorkType.PRINT3D => "info",
+            WorkType.ZEST => "warning",
+            _ => "secondary"
+        };
+    }
+
+    private string GetStatusBadgeClass(CaseStatus status)
+    {
+        return status switch
+        {
+            CaseStatus.Pending => "warning",
+            CaseStatus.InProgress => "info",
+            CaseStatus.Completed => "success",
+            CaseStatus.Cancelled => "danger",
+            CaseStatus.Shipped => "primary",
+            _ => "secondary"
+        };
+    }
+
+    private void CreateNewCase()
+    {
+        NavigationManager.NavigateTo("/cases/create");
+    }
+
+    private void ViewCase(int caseId)
+    {
+        NavigationManager.NavigateTo($"/cases/view/{caseId}");
+    }
+
+    private void EditCase(int caseId)
+    {
+        NavigationManager.NavigateTo($"/cases/edit/{caseId}");
+    }
+}

@@ -1,0 +1,215 @@
+@page "/dashboard"
+@using Lucent.Models.DTOs
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<h1 class="mb-4">CADCAM Work Management Dashboard</h1>
+
+@if (stats == null)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Cases</h5>
+                    <h2 class="display-4">@stats.TotalCases</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending</h5>
+                    <h2 class="display-4">@stats.PendingCases</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">In Progress</h5>
+                    <h2 class="display-4">@stats.InProgressCases</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Completed</h5>
+                    <h2 class="display-4">@stats.CompletedCases</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Cases by Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Cases by Work Type</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="workTypeChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Work Type Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>SOLIDEX:</strong> @stats.SolidexCases
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" style="width: @(GetPercentage(stats.SolidexCases, stats.TotalCases))%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <strong>3D PRINT:</strong> @stats.Print3DCases
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width: @(GetPercentage(stats.Print3DCases, stats.TotalCases))%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <strong>ZEST:</strong> @stats.ZestCases
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" style="width: @(GetPercentage(stats.ZestCases, stats.TotalCases))%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Cases by Month (Last 6 Months)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Cases (Last 10)</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Case Number</th>
+                                <th>Patient Name</th>
+                                <th>Work Type</th>
+                                <th>Status</th>
+                                <th>Order Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var caseItem in stats.RecentCases)
+                            {
+                                <tr>
+                                    <td>@caseItem.CaseNumber</td>
+                                    <td>@caseItem.PatientName</td>
+                                    <td><span class="badge badge-primary">@caseItem.WorkType</span></td>
+                                    <td><span class="badge badge-@GetStatusBadgeClass(caseItem.Status)">@caseItem.Status</span></td>
+                                    <td>@caseItem.OrderDate</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" @onclick="() => ViewCase(caseItem.CaseId)">View</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardStatsDto stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardStats();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && stats != null)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task LoadDashboardStats()
+    {
+        try
+        {
+            stats = await Http.GetFromJsonAsync<DashboardStatsDto>("/api/Dashboard/stats");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard stats: {ex.Message}");
+        }
+    }
+
+    private async Task RenderCharts()
+    {
+        // This would use Chart.js via JavaScript interop
+        // For now, we'll use simple HTML/CSS based charts
+    }
+
+    private double GetPercentage(int value, int total)
+    {
+        return total > 0 ? (value * 100.0 / total) : 0;
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "warning",
+            "InProgress" => "info",
+            "Completed" => "success",
+            "Cancelled" => "danger",
+            "Shipped" => "primary",
+            _ => "secondary"
+        };
+    }
+
+    private void ViewCase(int caseId)
+    {
+        NavigationManager.NavigateTo($"/cases/view/{caseId}");
+    }
+}

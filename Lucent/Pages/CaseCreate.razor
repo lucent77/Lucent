@@ -1,0 +1,318 @@
+@page "/cases/create"
+@using Lucent.Models
+@using Lucent.Models.DTOs
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<h1 class="mb-4">Create New Case</h1>
+
+<div class="card">
+    <div class="card-body">
+        <EditForm Model="@caseDto" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Case Number *</label>
+                        <InputText class="form-control" @bind-Value="caseDto.CaseNumber" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Patient Name *</label>
+                        <InputText class="form-control" @bind-Value="caseDto.PatientName" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Lab Name</label>
+                        <InputText class="form-control" @bind-Value="caseDto.LabName" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Account Name</label>
+                        <InputText class="form-control" @bind-Value="caseDto.AccountName" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Work Type *</label>
+                        <InputSelect class="form-control" @bind-Value="caseDto.WorkType">
+                            <option value="@WorkType.SOLIDEX">SOLIDEX</option>
+                            <option value="@WorkType.PRINT3D">3D PRINT</option>
+                            <option value="@WorkType.ZEST">ZEST</option>
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Location *</label>
+                        <InputSelect class="form-control" @bind-Value="caseDto.Location">
+                            <option value="@Location.HV">HV (Hudson Valley)</option>
+                            <option value="@Location.NYC">NYC (New York City)</option>
+                            <option value="@Location.NYCHV">NYC to HV</option>
+                            <option value="@Location.HVNYC">HV to NYC</option>
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Case Type</label>
+                        <InputText class="form-control" @bind-Value="caseDto.CaseType" placeholder="e.g., Dental Crown, Bridge..." />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <InputDate class="form-control" @bind-Value="caseDto.DueDate" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Appointment Date</label>
+                        <InputDate class="form-control" @bind-Value="caseDto.AppointmentDate" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Work Type Specific Fields -->
+            @if (caseDto.WorkType == WorkType.SOLIDEX)
+            {
+                <hr />
+                <h5>SOLIDEX Details</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Combo</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Combo" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>LD</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.LD" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Pan</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Pan" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Design</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Design" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Nesting</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Nesting" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (caseDto.WorkType == WorkType.PRINT3D)
+            {
+                <hr />
+                <h5>3D PRINT Details</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Print Type</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.PrintType" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Implant Type</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.ImplantType" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Transparency</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Transparency" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Note</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.Note" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (caseDto.WorkType == WorkType.ZEST)
+            {
+                <hr />
+                <h5>ZEST Details</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>CAD/EMAX</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.CADEMAX" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>MC/IOFL</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.MCIOFL" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>ZEST Type</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.ZestType" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>FC</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.FC" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>AH</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.AH" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>CONTACTS</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.CONTACTS" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>OCC</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.OCC" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Disk Type</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.DiskType" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>E-Max Color</label>
+                            <InputText class="form-control" @bind-Value="caseDto.Details.EmaxColor" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Special Instructions</label>
+                            <InputTextArea class="form-control" @bind-Value="caseDto.Details.SpecialInstructions" rows="3" />
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <hr />
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Instructions</label>
+                        <InputTextArea class="form-control" @bind-Value="caseDto.Instructions" rows="3" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Preferences</label>
+                        <InputTextArea class="form-control" @bind-Value="caseDto.Preferences" rows="3" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary" disabled="@submitting">
+                    @if (submitting)
+                    {
+                        <span class="spinner-border spinner-border-sm mr-1"></span>
+                    }
+                    Create Case
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+@code {
+    private CaseCreateDto caseDto = new CaseCreateDto
+    {
+        WorkType = WorkType.SOLIDEX,
+        Location = Location.HV,
+        Details = new CaseDetailDto(),
+        Teeth = new List<CaseToothDto>()
+    };
+    private bool submitting = false;
+    private string errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        submitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/Cases", caseDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/cases");
+            }
+            else
+            {
+                errorMessage = $"Error creating case: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/cases");
+    }
+}
