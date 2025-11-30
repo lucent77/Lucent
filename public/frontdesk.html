@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Front Desk Dashboard - Voice Prescription System</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background-color: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--primary-gradient);
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.waiting { background: #fff3e0; color: #e65100; }
+        .stat-icon.processing { background: #e3f2fd; color: #1565c0; }
+        .stat-icon.ready { background: #e8f5e9; color: #2e7d32; }
+        .stat-icon.dispensed { background: #f3e5f5; color: #7b1fa2; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* Queue Table */
+        .queue-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .queue-header {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .queue-table {
+            margin-bottom: 0;
+        }
+
+        .queue-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding: 15px;
+        }
+
+        .queue-table td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+        .queue-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .queue-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-waiting {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-processing {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-dispensed {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-cancelled {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Priority Badges */
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-urgent {
+            background: #dc3545;
+            color: white;
+        }
+
+        .priority-high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .priority-normal {
+            background: #6c757d;
+            color: white;
+        }
+
+        .priority-low {
+            background: #adb5bd;
+            color: white;
+        }
+
+        /* Queue Number */
+        .queue-number {
+            background: var(--primary-gradient);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        /* Wait Time */
+        .wait-time {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .wait-time.warning {
+            color: #e65100;
+        }
+
+        .wait-time.danger {
+            color: #c62828;
+        }
+
+        /* Modal Styles */
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .detail-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        /* Refresh Animation */
+        .refresh-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Filter Pills */
+        .filter-pills .nav-link {
+            border-radius: 20px;
+            padding: 8px 20px;
+            margin-right: 8px;
+            color: #495057;
+            background: #e9ecef;
+            border: none;
+        }
+
+        .filter-pills .nav-link.active {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="index.php">
+                <i class="bi bi-mic-fill me-2"></i>Voice Prescription
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="record.html">
+                            <i class="bi bi-record-circle me-1"></i>Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="frontdesk.html">
+                            <i class="bi bi-clipboard2-pulse me-1"></i>Front Desk
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-4 py-4">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Success Message (from URL param) -->
+        <div id="successAlert" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span id="successMessage"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="mb-1"><i class="bi bi-clipboard2-pulse me-2"></i>Front Desk Dashboard</h3>
+                <p class="text-muted mb-0">Prescription queue management</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="refreshBtn" class="btn btn-outline-primary" onclick="refreshQueue()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+                <a href="record.html" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>New Recording
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon waiting me-3">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                        <div>
+                            <p class="stat-value" id="statWaiting">0</p>
+                            <p class="stat-label mb-0">Waiting</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon processing me-3">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                        <div>
+                            <p class="stat-value" id="statProcessing">0</p>
+                            <p class="stat-label mb-0">Processing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon ready me-3">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div>
+                            <p class="stat-value" id="statReady">0</p>
+                            <p class="stat-label mb-0">Ready</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon dispensed me-3">
+                            <i class="bi bi-bag-check"></i>
+                        </div>
+                        <div>
+                            <p class="stat-value" id="statDispensed">0</p>
+                            <p class="stat-label mb-0">Dispensed Today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Table -->
+        <div class="queue-container">
+            <div class="queue-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Prescription Queue</h5>
+
+                <!-- Status Filter -->
+                <ul class="nav filter-pills mb-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-filter="all">All</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="waiting">Waiting</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="processing">Processing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="ready">Ready</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table queue-table">
+                    <thead>
+                        <tr>
+                            <th width="80">#</th>
+                            <th>Patient</th>
+                            <th>Diagnosis</th>
+                            <th>Doctor</th>
+                            <th>Medications</th>
+                            <th>Priority</th>
+                            <th>Wait Time</th>
+                            <th>Status</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state d-none">
+                <i class="bi bi-inbox"></i>
+                <h5 class="text-muted">No prescriptions in queue</h5>
+                <p class="text-muted">New prescriptions will appear here automatically</p>
+                <a href="record.html" class="btn btn-primary mt-2">
+                    <i class="bi bi-mic me-1"></i>Start Recording
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-medical me-2"></i>Prescription Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="modalActionBtn">
+                        <i class="bi bi-check-lg me-1"></i>Update Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let currentFilter = 'all';
+        let queueData = [];
+        let autoRefreshInterval;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for success message in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                const rxNumber = urlParams.get('rx');
+                const successAlert = document.getElementById('successAlert');
+                document.getElementById('successMessage').textContent =
+                    `Prescription ${rxNumber || ''} saved successfully and added to queue!`;
+                successAlert.classList.remove('d-none');
+            }
+
+            // Load initial data
+            refreshQueue();
+
+            // Setup filter listeners
+            document.querySelectorAll('.filter-pills .nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.filter-pills .nav-link').forEach(l => l.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentFilter = e.target.dataset.filter;
+                    renderQueue();
+                });
+            });
+
+            // Auto-refresh every 30 seconds
+            autoRefreshInterval = setInterval(refreshQueue, 30000);
+        });
+
+        async function refreshQueue() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.querySelector('i').classList.add('refresh-spin');
+
+            try {
+                const response = await fetch('/api/queue.php');
+                const data = await response.json();
+
+                if (data.success) {
+                    queueData = data.queue || [];
+                    updateStats(data.statistics);
+                    renderQueue();
+                }
+
+            } catch (error) {
+                console.error('Failed to refresh queue:', error);
+            }
+
+            setTimeout(() => {
+                refreshBtn.querySelector('i').classList.remove('refresh-spin');
+            }, 500);
+        }
+
+        function updateStats(stats) {
+            document.getElementById('statWaiting').textContent = stats?.waiting || 0;
+            document.getElementById('statProcessing').textContent = stats?.processing || 0;
+            document.getElementById('statReady').textContent = stats?.ready || 0;
+            document.getElementById('statDispensed').textContent = stats?.dispensed || 0;
+        }
+
+        function renderQueue() {
+            const tbody = document.getElementById('queueTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            let filteredData = queueData;
+            if (currentFilter !== 'all') {
+                filteredData = queueData.filter(item => item.status === currentFilter);
+            }
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('d-none');
+                return;
+            }
+
+            emptyState.classList.add('d-none');
+
+            tbody.innerHTML = filteredData.map(item => `
+                <tr>
+                    <td>
+                        <div class="queue-number">${item.queue_number || '-'}</div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold">${item.patient_name || 'Unknown'}</div>
+                        <small class="text-muted">${item.case_number}</small>
+                    </td>
+                    <td>${item.diagnosis || '-'}</td>
+                    <td>${item.doctor_name || '-'}</td>
+                    <td>
+                        <span class="badge bg-primary">${item.medications_count || 0} items</span>
+                    </td>
+                    <td>
+                        <span class="priority-badge priority-${item.priority}">${item.priority}</span>
+                    </td>
+                    <td>
+                        <div class="wait-time ${getWaitTimeClass(item.wait_minutes)}">
+                            <i class="bi bi-clock"></i>
+                            <span>${formatWaitTime(item.wait_minutes)}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${item.status}">${formatStatus(item.status)}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="viewDetails(${item.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        ${getActionButton(item)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getActionButton(item) {
+            switch (item.status) {
+                case 'waiting':
+                    return `<button class="btn btn-sm btn-primary action-btn" onclick="updateStatus(${item.id}, 'processing')">
+                        <i class="bi bi-play-fill me-1"></i>Process
+                    </button>`;
+                case 'processing':
+                    return `<button class="btn btn-sm btn-success action-btn" onclick="updateStatus(${item.id}, 'ready')">
+                        <i class="bi bi-check me-1"></i>Ready
+                    </button>`;
+                case 'ready':
+                    return `<button class="btn btn-sm btn-info action-btn" onclick="updateStatus(${item.id}, 'dispensed')">
+                        <i class="bi bi-bag-check me-1"></i>Dispense
+                    </button>`;
+                default:
+                    return '';
+            }
+        }
+
+        function formatStatus(status) {
+            const statusMap = {
+                'waiting': 'Waiting',
+                'processing': 'Processing',
+                'ready': 'Ready',
+                'dispensed': 'Dispensed',
+                'cancelled': 'Cancelled'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatWaitTime(minutes) {
+            if (!minutes) return '0 min';
+            if (minutes < 60) return `${minutes} min`;
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours}h ${mins}m`;
+        }
+
+        function getWaitTimeClass(minutes) {
+            if (minutes >= 30) return 'danger';
+            if (minutes >= 15) return 'warning';
+            return '';
+        }
+
+        async function updateStatus(queueId, newStatus) {
+            try {
+                const response = await fetch('/api/queue.php', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: queueId, status: newStatus })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Status updated successfully', 'success');
+                    refreshQueue();
+                } else {
+                    showAlert('Failed to update status', 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            }
+        }
+
+        async function viewDetails(queueId) {
+            try {
+                const response = await fetch(`/api/queue.php?id=${queueId}`);
+                const data = await response.json();
+
+                if (data.success && data.queue_item) {
+                    showDetailModal(data.queue_item);
+                }
+
+            } catch (error) {
+                showAlert('Failed to load details', 'danger');
+            }
+        }
+
+        function showDetailModal(item) {
+            const modalBody = document.getElementById('modalBody');
+            const medications = item.rx_medications || item.medications || [];
+
+            modalBody.innerHTML = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="detail-section">
+                            <div class="detail-label">Queue Number</div>
+                            <div class="detail-value fs-4">#${item.queue_number}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-section">
+                            <div class="detail-label">Status</div>
+                            <div class="detail-value">
+                                <span class="status-badge status-${item.status}">${formatStatus(item.status)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h6><i class="bi bi-person me-2"></i>Patient Information</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="detail-label">Name</div>
+                            <div class="detail-value">${item.patient_name || '-'}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">Case Number</div>
+                            <div class="detail-value">${item.case_number || '-'}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">Doctor</div>
+                            <div class="detail-value">${item.doctor_name || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h6><i class="bi bi-capsule me-2"></i>Medications</h6>
+                    ${medications.length > 0 ? medications.map(med => `
+                        <div class="border rounded p-2 mb-2">
+                            <div class="fw-semibold">${med.name}</div>
+                            <small class="text-muted">
+                                ${med.dosage || ''} ${med.frequency ? '| ' + med.frequency : ''} ${med.duration ? '| ' + med.duration : ''}
+                            </small>
+                        </div>
+                    `).join('') : '<p class="text-muted mb-0">No medications listed</p>'}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-section">
+                            <div class="detail-label">Priority</div>
+                            <div class="detail-value">
+                                <span class="priority-badge priority-${item.priority}">${item.priority}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-section">
+                            <div class="detail-label">Wait Time</div>
+                            <div class="detail-value ${getWaitTimeClass(item.wait_minutes)}">${formatWaitTime(item.wait_minutes)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Update action button
+            const actionBtn = document.getElementById('modalActionBtn');
+            if (item.status === 'waiting') {
+                actionBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Start Processing';
+                actionBtn.onclick = () => { updateStatus(item.id, 'processing'); bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide(); };
+            } else if (item.status === 'processing') {
+                actionBtn.innerHTML = '<i class="bi bi-check me-1"></i>Mark Ready';
+                actionBtn.onclick = () => { updateStatus(item.id, 'ready'); bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide(); };
+            } else if (item.status === 'ready') {
+                actionBtn.innerHTML = '<i class="bi bi-bag-check me-1"></i>Dispense';
+                actionBtn.onclick = () => { updateStatus(item.id, 'dispensed'); bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide(); };
+            } else {
+                actionBtn.classList.add('d-none');
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

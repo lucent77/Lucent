@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording - Voice Prescription System</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--primary-gradient);
+        }
+
+        /* Step Indicator */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            color: #adb5bd;
+        }
+
+        .step:not(:last-child)::after {
+            content: '';
+            width: 50px;
+            height: 2px;
+            background: #dee2e6;
+            margin: 0 10px;
+        }
+
+        .step.active .step-number {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: #198754;
+            color: white;
+        }
+
+        .step.completed::after {
+            background: #198754;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+        }
+
+        /* Recording Section */
+        .record-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+
+        .record-btn {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            font-size: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .record-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .record-btn.recording {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 10px 30px rgba(220, 53, 69, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .recording-timer {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Recording Indicator */
+        .recording-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .recording-indicator .dot {
+            width: 12px;
+            height: 12px;
+            background: #dc3545;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Status Message */
+        .status-message {
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .status-ready { background: #e8f5e9; color: #2e7d32; }
+        .status-recording { background: #ffebee; color: #c62828; }
+        .status-processing { background: #e3f2fd; color: #1565c0; }
+        .status-success { background: #e8f5e9; color: #2e7d32; }
+        .status-error { background: #ffebee; color: #c62828; }
+
+        /* Audio Preview */
+        .audio-preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        /* Follow-up Section */
+        .followup-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .question-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            line-height: 1.6;
+        }
+
+        /* Confirmation Section */
+        .confirm-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .prescription-preview {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        /* Completion Section */
+        .completion-section {
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 3rem;
+            color: white;
+        }
+
+        /* Medications Table */
+        .medications-table {
+            font-size: 0.9rem;
+        }
+
+        .medications-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.php">
+                <i class="bi bi-mic-fill me-2"></i>Voice Prescription
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="record.html">
+                            <i class="bi bi-record-circle me-1"></i>Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="frontdesk.html">
+                            <i class="bi bi-clipboard2-pulse me-1"></i>Front Desk
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <span class="step-label">Record</span>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <span class="step-label">Follow-up</span>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <span class="step-label">Confirm</span>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <span class="step-label">Complete</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Recording Section -->
+        <div id="recordSection" class="record-section">
+            <div class="text-center mb-4">
+                <h3 class="mb-3">Record Consultation</h3>
+                <p class="text-muted">Click the microphone button to start recording the doctor-patient consultation</p>
+            </div>
+
+            <!-- Doctor Selection (Optional) -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Doctor (Optional)</label>
+                        <select id="doctorSelect" class="form-select">
+                            <option value="">-- Select Doctor --</option>
+                            <!-- Populated via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Patient Name (Optional)</label>
+                        <input type="text" id="patientName" class="form-control" placeholder="Enter patient name">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recording Button -->
+            <div class="text-center mb-4">
+                <button id="recordBtn" class="record-btn">
+                    <i class="bi bi-mic-fill"></i>
+                </button>
+            </div>
+
+            <!-- Recording Timer -->
+            <div class="text-center mb-4">
+                <div id="recordingIndicator" class="recording-indicator d-none">
+                    <span class="dot"></span>
+                    <span>Recording</span>
+                </div>
+                <div id="recordingTimer" class="recording-timer">00:00</div>
+            </div>
+
+            <!-- Status Message -->
+            <div class="text-center mb-4">
+                <span id="statusMessage" class="status-message status-ready">Ready to record</span>
+            </div>
+
+            <!-- Audio Preview -->
+            <div id="audioPreview" class="audio-preview d-none">
+                <h6 class="mb-3"><i class="bi bi-music-note-beamed me-2"></i>Recording Preview</h6>
+                <audio id="previewAudio" controls class="w-100"></audio>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center mt-4">
+                <button id="submitBtn" class="btn btn-primary btn-lg d-none">
+                    <i class="bi bi-cloud-upload me-2"></i>Submit Recording
+                </button>
+            </div>
+
+            <!-- Transcript Section (shows after transcription) -->
+            <div id="transcriptSection" class="mt-4 d-none">
+                <h6 class="mb-3"><i class="bi bi-chat-text me-2"></i>Transcript</h6>
+                <div id="transcript" class="bg-light rounded p-3"></div>
+            </div>
+        </div>
+
+        <!-- Step 2: Follow-up Section -->
+        <div id="followupSection" class="followup-section d-none">
+            <div class="text-center mb-4">
+                <h3 class="mb-3">Additional Information Needed</h3>
+                <p class="text-muted">Some information is missing. Please answer the following questions.</p>
+            </div>
+
+            <!-- Missing Fields Summary -->
+            <div class="row mb-4">
+                <div class="col-md-6 mx-auto">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-exclamation-triangle me-2"></i>Missing Information</span>
+                            <span id="completenessScore" class="badge bg-warning">0%</span>
+                        </div>
+                        <ul id="missingFieldsList" class="list-group list-group-flush">
+                            <!-- Populated dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="question-card">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-question-circle fs-3 me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p id="questionText" class="question-text mb-2"></p>
+                        <p id="questionEnglish" class="small opacity-75"></p>
+                    </div>
+                </div>
+                <button id="playQuestionBtn" class="btn btn-light btn-sm mt-3 d-none">
+                    <i class="bi bi-volume-up me-1"></i>Play Question
+                </button>
+            </div>
+
+            <!-- Answer Section -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3">Your Answer</h6>
+
+                    <!-- Voice Answer -->
+                    <div class="mb-3">
+                        <button id="answerBtn" class="btn btn-outline-primary">
+                            <i class="bi bi-mic-fill me-1"></i>Record Answer
+                        </button>
+                        <span id="answerTimer" class="ms-3 text-muted"></span>
+                    </div>
+
+                    <!-- Answer Preview -->
+                    <div id="answerPreview" class="audio-preview d-none mb-3">
+                        <audio id="answerPreviewAudio" controls class="w-100"></audio>
+                    </div>
+
+                    <!-- Text Answer (Alternative) -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Or type your answer:</label>
+                        <textarea id="textAnswer" class="form-control" rows="2" placeholder="Type answer here..."></textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2">
+                        <button id="submitAnswerBtn" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Submit Answer
+                        </button>
+                        <button id="skipQuestionBtn" class="btn btn-outline-secondary">
+                            <i class="bi bi-skip-forward me-1"></i>Skip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Confirmation Section -->
+        <div id="confirmSection" class="confirm-section d-none">
+            <div class="text-center mb-4">
+                <h3 class="mb-3">Review & Confirm Prescription</h3>
+                <p class="text-muted">Review the extracted information and make any necessary corrections</p>
+            </div>
+
+            <form id="prescriptionForm">
+                <!-- Patient Information -->
+                <div class="prescription-preview mb-4">
+                    <h5 class="mb-3"><i class="bi bi-person me-2"></i>Patient Information</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input type="text" id="confirmPatientName" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Gender</label>
+                            <select id="confirmPatientGender" class="form-select">
+                                <option value="">Select</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Age</label>
+                            <input type="text" id="confirmPatientAge" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Information -->
+                <div class="prescription-preview mb-4">
+                    <h5 class="mb-3"><i class="bi bi-heart-pulse me-2"></i>Medical Information</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Chief Complaint</label>
+                            <input type="text" id="confirmChiefComplaint" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Diagnosis</label>
+                            <input type="text" id="confirmDiagnosis" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Symptoms</label>
+                            <textarea id="confirmSymptoms" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medications -->
+                <div class="prescription-preview mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-capsule me-2"></i>Medications</h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="prescriptionUI.addMedication()">
+                            <i class="bi bi-plus-lg me-1"></i>Add Medication
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered medications-table">
+                            <thead>
+                                <tr>
+                                    <th>Medication Name</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Instructions</th>
+                                    <th width="50"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="medicationsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="prescription-preview mb-4">
+                    <h5 class="mb-3"><i class="bi bi-journal-text me-2"></i>Additional Information</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Warnings</label>
+                            <textarea id="confirmWarnings" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Instructions</label>
+                            <textarea id="confirmInstructions" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="text-center">
+                    <button type="button" id="confirmBtn" class="btn btn-success btn-lg me-2">
+                        <i class="bi bi-check-circle me-2"></i>Confirm & Save
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg" onclick="prescriptionUI.resetToStart()">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Start Over
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 4: Completion Section -->
+        <div id="completionSection" class="record-section d-none">
+            <div class="completion-section">
+                <div class="success-icon">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <h2 class="mb-3">Prescription Saved!</h2>
+                <p class="text-muted mb-4">
+                    The prescription has been saved and added to the front desk queue.
+                </p>
+
+                <div class="bg-light rounded-3 p-4 mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1 text-muted">Prescription Number</p>
+                            <h4 id="prescriptionNumber" class="text-primary">-</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1 text-muted">Case Number</p>
+                            <h4 id="completedCaseNumber" class="text-secondary">-</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <button id="newRecordingBtn" class="btn btn-primary btn-lg">
+                        <i class="bi bi-mic me-2"></i>New Recording
+                    </button>
+                    <a href="frontdesk.html" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-clipboard2-pulse me-2"></i>Go to Front Desk
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p id="loadingMessage" class="mt-3 fs-5">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="/assets/js/recorder.js"></script>
+    <script src="/assets/js/ui.js"></script>
+
+    <!-- Load doctors on page load -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/doctors.php');
+                const data = await response.json();
+
+                if (data.success && data.doctors) {
+                    const select = document.getElementById('doctorSelect');
+                    data.doctors.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.id;
+                        option.textContent = `${doctor.name} (${doctor.specialty || doctor.department || 'General'})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load doctors:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Prescription - Voice Prescription System</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--primary-gradient);
+        }
+
+        .confirm-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .prescription-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .prescription-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 30px;
+        }
+
+        .prescription-body {
+            padding: 30px;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .info-section h6 {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-section h6 i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .medication-row {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .medication-row:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1);
+        }
+
+        .badge-dosage {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .badge-frequency {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .signature-section {
+            border-top: 2px dashed #dee2e6;
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+        }
+
+        .btn-edit {
+            background: #fff;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+        }
+
+        .btn-edit:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .warning-alert {
+            background: #fff3cd;
+            border: none;
+            border-left: 4px solid #ffc107;
+            border-radius: 10px;
+        }
+
+        .info-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .case-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.php">
+                <i class="bi bi-mic-fill me-2"></i>Voice Prescription
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="record.html">
+                            <i class="bi bi-record-circle me-1"></i>Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="frontdesk.html">
+                            <i class="bi bi-clipboard2-pulse me-1"></i>Front Desk
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <div class="confirm-container">
+            <!-- Alert Container -->
+            <div id="alertContainer"></div>
+
+            <!-- No Case Message (shown when no case_id) -->
+            <div id="noCaseMessage" class="text-center py-5 d-none">
+                <i class="bi bi-clipboard-x display-1 text-muted mb-4"></i>
+                <h3 class="text-muted">No Prescription to Confirm</h3>
+                <p class="text-muted mb-4">Please start a new recording to create a prescription.</p>
+                <a href="record.html" class="btn btn-primary btn-lg">
+                    <i class="bi bi-mic me-2"></i>Start Recording
+                </a>
+            </div>
+
+            <!-- Prescription Card -->
+            <div id="prescriptionCard" class="prescription-card">
+                <!-- Header -->
+                <div class="prescription-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">
+                                <i class="bi bi-file-medical me-2"></i>Prescription Confirmation
+                            </h4>
+                            <p class="mb-0 opacity-75">Review and confirm the prescription details</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="case-badge" id="caseNumber">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="prescription-body">
+                    <!-- Warnings (if any) -->
+                    <div id="warningsSection" class="alert warning-alert d-none" role="alert">
+                        <div class="d-flex">
+                            <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                            <div>
+                                <h6 class="alert-heading mb-1">Important Warnings</h6>
+                                <p id="warningText" class="mb-0"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient Information -->
+                    <div class="info-section">
+                        <h6><i class="bi bi-person"></i>Patient Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="info-label">Name</div>
+                                <div class="info-value" id="patientName">-</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Gender</div>
+                                <div class="info-value" id="patientGender">-</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Date of Birth</div>
+                                <div class="info-value" id="patientDob">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medical Information -->
+                    <div class="info-section">
+                        <h6><i class="bi bi-heart-pulse"></i>Medical Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-label">Chief Complaint</div>
+                                <div class="info-value" id="chiefComplaint">-</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Diagnosis</div>
+                                <div class="info-value" id="diagnosis">-</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="info-label">Symptoms</div>
+                                <div class="info-value" id="symptoms">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medications -->
+                    <div class="info-section">
+                        <h6><i class="bi bi-capsule"></i>Prescribed Medications</h6>
+                        <div id="medicationsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="info-section">
+                        <h6><i class="bi bi-journal-text"></i>Instructions</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-label">Usage Instructions</div>
+                                <div class="info-value" id="instructions">-</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Follow-up</div>
+                                <div class="info-value" id="followUp">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Doctor Information -->
+                    <div class="info-section">
+                        <h6><i class="bi bi-person-badge"></i>Prescribing Doctor</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-label">Doctor Name</div>
+                                <div class="info-value" id="doctorName">-</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Department</div>
+                                <div class="info-value" id="doctorDepartment">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signature Section -->
+                    <div class="signature-section">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="info-label">Date & Time</div>
+                                <div class="info-value" id="currentDateTime">-</div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="confirmCheckbox">
+                                    <label class="form-check-label" for="confirmCheckbox">
+                                        I confirm this prescription is accurate
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="text-center mt-4">
+                        <button id="confirmBtn" class="btn btn-confirm btn-lg me-3" disabled>
+                            <i class="bi bi-check-circle me-2"></i>Confirm & Sign
+                        </button>
+                        <button id="editBtn" class="btn btn-edit btn-lg">
+                            <i class="bi bi-pencil me-2"></i>Edit Prescription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p id="loadingMessage" class="mt-3 fs-5">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Get case_id from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const caseId = urlParams.get('case_id');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!caseId) {
+                document.getElementById('prescriptionCard').classList.add('d-none');
+                document.getElementById('noCaseMessage').classList.remove('d-none');
+                return;
+            }
+
+            await loadCaseData(caseId);
+
+            // Update current date/time
+            document.getElementById('currentDateTime').textContent =
+                new Date().toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' });
+
+            // Enable confirm button when checkbox is checked
+            document.getElementById('confirmCheckbox').addEventListener('change', (e) => {
+                document.getElementById('confirmBtn').disabled = !e.target.checked;
+            });
+
+            // Confirm button handler
+            document.getElementById('confirmBtn').addEventListener('click', confirmPrescription);
+
+            // Edit button handler
+            document.getElementById('editBtn').addEventListener('click', () => {
+                window.location.href = `record.html?case_id=${caseId}&edit=true`;
+            });
+        });
+
+        async function loadCaseData(caseId) {
+            showLoading('Loading prescription data...');
+
+            try {
+                const response = await fetch(`/api/cases.php?id=${caseId}`);
+                const data = await response.json();
+
+                if (!data.success || !data.case) {
+                    throw new Error('Case not found');
+                }
+
+                populatePrescriptionData(data.case);
+                hideLoading();
+
+            } catch (error) {
+                hideLoading();
+                showError('Failed to load prescription: ' + error.message);
+            }
+        }
+
+        function populatePrescriptionData(caseData) {
+            // Case number
+            document.getElementById('caseNumber').textContent = caseData.case_number;
+
+            // Patient info
+            const patientInfo = caseData.ai_structured_data?.patient_info || {};
+            document.getElementById('patientName').textContent = caseData.patient_name || patientInfo.name || '-';
+            document.getElementById('patientGender').textContent = formatGender(caseData.patient_gender || patientInfo.gender);
+            document.getElementById('patientDob').textContent = caseData.patient_dob || patientInfo.dob || '-';
+
+            // Medical info
+            const structuredData = caseData.ai_structured_data || {};
+            document.getElementById('chiefComplaint').textContent = caseData.chief_complaint || structuredData.chief_complaint || '-';
+            document.getElementById('diagnosis').textContent = caseData.diagnosis || structuredData.diagnosis?.primary || '-';
+
+            const symptoms = structuredData.symptoms || [];
+            document.getElementById('symptoms').textContent = Array.isArray(symptoms) ? symptoms.join(', ') : (symptoms || '-');
+
+            // Medications
+            const medications = structuredData.treatment_plan?.medications || caseData.medications || [];
+            populateMedications(medications);
+
+            // Instructions
+            const instructions = structuredData.treatment_plan?.lifestyle_recommendations || [];
+            document.getElementById('instructions').textContent =
+                Array.isArray(instructions) ? instructions.join('; ') : (instructions || '-');
+
+            document.getElementById('followUp').textContent =
+                structuredData.treatment_plan?.follow_up || '-';
+
+            // Warnings
+            const warnings = structuredData.warnings || [];
+            if (warnings.length > 0) {
+                document.getElementById('warningsSection').classList.remove('d-none');
+                document.getElementById('warningText').textContent = warnings.join('; ');
+            }
+
+            // Doctor info
+            document.getElementById('doctorName').textContent = caseData.doctor_name || '-';
+            document.getElementById('doctorDepartment').textContent = caseData.doctor_specialty || '-';
+        }
+
+        function populateMedications(medications) {
+            const container = document.getElementById('medicationsList');
+
+            if (!medications || medications.length === 0) {
+                container.innerHTML = '<p class="text-muted">No medications prescribed</p>';
+                return;
+            }
+
+            container.innerHTML = medications.map((med, index) => `
+                <div class="medication-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-2">
+                                <i class="bi bi-capsule me-2 text-primary"></i>
+                                ${med.name || 'Unknown Medication'}
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                ${med.dosage ? `<span class="badge-dosage">${med.dosage}</span>` : ''}
+                                ${med.frequency ? `<span class="badge-frequency">${med.frequency}</span>` : ''}
+                                ${med.duration ? `<span class="badge bg-light text-dark">${med.duration}</span>` : ''}
+                            </div>
+                            ${med.instructions ? `<p class="text-muted small mb-0">${med.instructions}</p>` : ''}
+                        </div>
+                        <span class="badge bg-secondary">#${index + 1}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatGender(gender) {
+            const genderMap = { 'M': 'Male', 'F': 'Female', 'O': 'Other' };
+            return genderMap[gender] || gender || '-';
+        }
+
+        async function confirmPrescription() {
+            showLoading('Saving prescription...');
+
+            try {
+                const response = await fetch('/api/save_prescription.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_id: caseId,
+                        sign_immediately: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to save prescription');
+                }
+
+                hideLoading();
+
+                // Redirect to success page or front desk
+                window.location.href = `frontdesk.html?success=true&rx=${data.prescription_number}`;
+
+            } catch (error) {
+                hideLoading();
+                showError(error.message);
+            }
+        }
+
+        function showLoading(message) {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showError(message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+    </script>
+
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-content {
+            text-align: center;
+        }
+    </style>
+</body>
+</html>
