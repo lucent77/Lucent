@@ -317,7 +317,6 @@
                         <label class="form-label">Doctor (Optional)</label>
                         <select id="doctorSelect" class="form-select">
                             <option value="">-- Select Doctor --</option>
-                            <!-- Populated via JavaScript -->
                         </select>
                     </div>
                     <div class="mb-3">
@@ -384,7 +383,6 @@
                             <span id="completenessScore" class="badge bg-warning">0%</span>
                         </div>
                         <ul id="missingFieldsList" class="list-group list-group-flush">
-                            <!-- Populated dynamically -->
                         </ul>
                     </div>
                 </div>
@@ -515,7 +513,6 @@
                                 </tr>
                             </thead>
                             <tbody id="medicationsTableBody">
-                                <!-- Populated dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -598,14 +595,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Application Scripts -->
-    <script src="/assets/js/recorder.js"></script>
-    <script src="/assets/js/ui.js"></script>
+    <script src="assets/js/recorder.js"></script>
+    <script src="assets/js/ui.js"></script>
 
     <!-- Load doctors on page load -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const response = await fetch('/api/doctors.php');
+                const response = await fetch('api/doctors.php');
                 const data = await response.json();
 
                 if (data.success && data.doctors) {

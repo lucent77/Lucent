@@ -4,9 +4,6 @@
 # Enable rewrite engine
 RewriteEngine On
 
-# Set base directory (adjust if needed)
-# RewriteBase /
-
 # Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
@@ -30,20 +27,8 @@ Options -Indexes
     RewriteRule ^services/ - [F,L]
     RewriteRule ^models/ - [F,L]
     RewriteRule ^database/ - [F,L]
+    RewriteRule ^Lucent/ - [F,L]
 </IfModule>
-
-# Route API requests
-RewriteCond %{REQUEST_URI} ^/api/
-RewriteRule ^api/(.*)$ /api/$1 [L,QSA]
-
-# Route asset requests
-RewriteCond %{REQUEST_URI} ^/assets/
-RewriteRule ^assets/(.*)$ /assets/$1 [L,QSA]
-
-# Route to public folder for static files
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ /public/$1 [L,QSA]
 
 # Enable CORS for API
 <IfModule mod_headers.c>
@@ -83,7 +68,6 @@ RewriteRule ^(.*)$ /public/$1 [L,QSA]
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/gif "access plus 1 month"
-    ExpiresByType image/svg+xml "access plus 1 month"
     ExpiresByType text/css "access plus 1 week"
     ExpiresByType application/javascript "access plus 1 week"
     ExpiresByType audio/mpeg "access plus 1 month"
@@ -91,6 +75,9 @@ RewriteRule ^(.*)$ /public/$1 [L,QSA]
     ExpiresByType audio/webm "access plus 1 month"
 </IfModule>
 
+# Default document
+DirectoryIndex index.php index.html
+
 # Error documents
-ErrorDocument 404 /public/index.php
-ErrorDocument 500 /public/index.php
+ErrorDocument 404 /index.php
+ErrorDocument 500 /index.php

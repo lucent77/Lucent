@@ -204,7 +204,7 @@ class VoiceRecorder {
  * Handles uploading audio to the server
  */
 class AudioUploader {
-    constructor(apiBaseUrl = '/api') {
+    constructor(apiBaseUrl = 'api') {
         this.apiBaseUrl = apiBaseUrl;
     }
 

@@ -5,7 +5,7 @@
 
 class PrescriptionUI {
     constructor(options = {}) {
-        this.apiBaseUrl = options.apiBaseUrl || '/api';
+        this.apiBaseUrl = options.apiBaseUrl || 'api';
         this.currentStep = 1;
         this.totalSteps = 4;
         this.caseId = null;

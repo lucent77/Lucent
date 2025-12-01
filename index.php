@@ -4,7 +4,7 @@
  * Hostinger PHP + Google AI Integration
  */
 
-define('APP_ROOT', dirname(__DIR__));
+define('APP_ROOT', __DIR__);
 
 // Load configuration
 require_once APP_ROOT . '/config/env.php';
@@ -121,6 +121,12 @@ require_once APP_ROOT . '/config/env.php';
             background: rgba(0,0,0,0.1);
             padding: 30px 0;
             color: rgba(255,255,255,0.8);
+        }
+
+        .hover-shadow:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -314,13 +320,5 @@ require_once APP_ROOT . '/config/env.php';
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <style>
-        .hover-shadow:hover {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-            transition: all 0.3s ease;
-        }
-    </style>
 </body>
 </html>

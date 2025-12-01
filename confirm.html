@@ -152,6 +152,23 @@
             border-radius: 20px;
             font-size: 0.9rem;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -187,7 +204,7 @@
             <!-- Alert Container -->
             <div id="alertContainer"></div>
 
-            <!-- No Case Message (shown when no case_id) -->
+            <!-- No Case Message -->
             <div id="noCaseMessage" class="text-center py-5 d-none">
                 <i class="bi bi-clipboard-x display-1 text-muted mb-4"></i>
                 <h3 class="text-muted">No Prescription to Confirm</h3>
@@ -199,7 +216,6 @@
 
             <!-- Prescription Card -->
             <div id="prescriptionCard" class="prescription-card">
-                <!-- Header -->
                 <div class="prescription-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -214,9 +230,8 @@
                     </div>
                 </div>
 
-                <!-- Body -->
                 <div class="prescription-body">
-                    <!-- Warnings (if any) -->
+                    <!-- Warnings -->
                     <div id="warningsSection" class="alert warning-alert d-none" role="alert">
                         <div class="d-flex">
                             <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
@@ -268,9 +283,7 @@
                     <!-- Medications -->
                     <div class="info-section">
                         <h6><i class="bi bi-capsule"></i>Prescribed Medications</h6>
-                        <div id="medicationsList">
-                            <!-- Populated dynamically -->
-                        </div>
+                        <div id="medicationsList"></div>
                     </div>
 
                     <!-- Instructions -->
@@ -349,7 +362,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Get case_id from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const caseId = urlParams.get('case_id');
 
@@ -362,19 +374,15 @@
 
             await loadCaseData(caseId);
 
-            // Update current date/time
             document.getElementById('currentDateTime').textContent =
                 new Date().toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' });
 
-            // Enable confirm button when checkbox is checked
             document.getElementById('confirmCheckbox').addEventListener('change', (e) => {
                 document.getElementById('confirmBtn').disabled = !e.target.checked;
             });
 
-            // Confirm button handler
             document.getElementById('confirmBtn').addEventListener('click', confirmPrescription);
 
-            // Edit button handler
             document.getElementById('editBtn').addEventListener('click', () => {
                 window.location.href = `record.html?case_id=${caseId}&edit=true`;
             });
@@ -382,18 +390,12 @@
 
         async function loadCaseData(caseId) {
             showLoading('Loading prescription data...');
-
             try {
-                const response = await fetch(`/api/cases.php?id=${caseId}`);
+                const response = await fetch(`api/cases.php?id=${caseId}`);
                 const data = await response.json();
-
-                if (!data.success || !data.case) {
-                    throw new Error('Case not found');
-                }
-
+                if (!data.success || !data.case) throw new Error('Case not found');
                 populatePrescriptionData(data.case);
                 hideLoading();
-
             } catch (error) {
                 hideLoading();
                 showError('Failed to load prescription: ' + error.message);
@@ -401,16 +403,12 @@
         }
 
         function populatePrescriptionData(caseData) {
-            // Case number
             document.getElementById('caseNumber').textContent = caseData.case_number;
-
-            // Patient info
             const patientInfo = caseData.ai_structured_data?.patient_info || {};
             document.getElementById('patientName').textContent = caseData.patient_name || patientInfo.name || '-';
             document.getElementById('patientGender').textContent = formatGender(caseData.patient_gender || patientInfo.gender);
             document.getElementById('patientDob').textContent = caseData.patient_dob || patientInfo.dob || '-';
 
-            // Medical info
             const structuredData = caseData.ai_structured_data || {};
             document.getElementById('chiefComplaint').textContent = caseData.chief_complaint || structuredData.chief_complaint || '-';
             document.getElementById('diagnosis').textContent = caseData.diagnosis || structuredData.diagnosis?.primary || '-';
@@ -418,46 +416,34 @@
             const symptoms = structuredData.symptoms || [];
             document.getElementById('symptoms').textContent = Array.isArray(symptoms) ? symptoms.join(', ') : (symptoms || '-');
 
-            // Medications
             const medications = structuredData.treatment_plan?.medications || caseData.medications || [];
             populateMedications(medications);
 
-            // Instructions
             const instructions = structuredData.treatment_plan?.lifestyle_recommendations || [];
-            document.getElementById('instructions').textContent =
-                Array.isArray(instructions) ? instructions.join('; ') : (instructions || '-');
+            document.getElementById('instructions').textContent = Array.isArray(instructions) ? instructions.join('; ') : (instructions || '-');
+            document.getElementById('followUp').textContent = structuredData.treatment_plan?.follow_up || '-';
 
-            document.getElementById('followUp').textContent =
-                structuredData.treatment_plan?.follow_up || '-';
-
-            // Warnings
             const warnings = structuredData.warnings || [];
             if (warnings.length > 0) {
                 document.getElementById('warningsSection').classList.remove('d-none');
                 document.getElementById('warningText').textContent = warnings.join('; ');
             }
 
-            // Doctor info
             document.getElementById('doctorName').textContent = caseData.doctor_name || '-';
             document.getElementById('doctorDepartment').textContent = caseData.doctor_specialty || '-';
         }
 
         function populateMedications(medications) {
             const container = document.getElementById('medicationsList');
-
             if (!medications || medications.length === 0) {
                 container.innerHTML = '<p class="text-muted">No medications prescribed</p>';
                 return;
             }
-
             container.innerHTML = medications.map((med, index) => `
                 <div class="medication-row">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="mb-2">
-                                <i class="bi bi-capsule me-2 text-primary"></i>
-                                ${med.name || 'Unknown Medication'}
-                            </h6>
+                            <h6 class="mb-2"><i class="bi bi-capsule me-2 text-primary"></i>${med.name || 'Unknown'}</h6>
                             <div class="d-flex flex-wrap gap-2 mb-2">
                                 ${med.dosage ? `<span class="badge-dosage">${med.dosage}</span>` : ''}
                                 ${med.frequency ? `<span class="badge-frequency">${med.frequency}</span>` : ''}
@@ -472,34 +458,22 @@
         }
 
         function formatGender(gender) {
-            const genderMap = { 'M': 'Male', 'F': 'Female', 'O': 'Other' };
-            return genderMap[gender] || gender || '-';
+            const map = { 'M': 'Male', 'F': 'Female', 'O': 'Other' };
+            return map[gender] || gender || '-';
         }
 
         async function confirmPrescription() {
             showLoading('Saving prescription...');
-
             try {
-                const response = await fetch('/api/save_prescription.php', {
+                const response = await fetch('api/save_prescription.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        case_id: caseId,
-                        sign_immediately: true
-                    })
+                    body: JSON.stringify({ case_id: caseId, sign_immediately: true })
                 });
-
                 const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to save prescription');
-                }
-
+                if (!data.success) throw new Error(data.error || 'Failed to save');
                 hideLoading();
-
-                // Redirect to success page or front desk
                 window.location.href = `frontdesk.html?success=true&rx=${data.prescription_number}`;
-
             } catch (error) {
                 hideLoading();
                 showError(error.message);
@@ -516,32 +490,9 @@
         }
 
         function showError(message) {
-            const alertContainer = document.getElementById('alertContainer');
-            alertContainer.innerHTML = `
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle me-2"></i>${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-danger alert-dismissible fade show"><i class="bi bi-exclamation-triangle me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
         }
     </script>
-
-    <style>
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .loading-content {
-            text-align: center;
-        }
-    </style>
 </body>
 </html>
